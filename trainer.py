@@ -23,13 +23,14 @@ torcuhch.set_printoptions(precision=8)
 
 class Trainer(object):
 
-    def __init__(self, model, criterion, optimizer, scheduler=None, callbacks=None, **kwargs):
+    def __init__(self, model, criterion, optimizer, scheduler=None, callbacks=None, mode='normal', **kwargs):
 
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.callbacks = callbacks
+        self.model_mode = mode.lower()
         self.psnr = PSNRMetrics().eval()
         self.sam = SAMMetrics().eval()
         self.ssim = SSIM().eval()
@@ -115,8 +116,12 @@ class Trainer(object):
     def _step(self, inputs, labels, train=True):
         if train is True:
             self.optimizer.zero_grad()
-        output = self.model(inputs)
-        loss = self.criterion(output, labels)
+        if self.model_mode == 'ista':
+            output, sym_loss = self.model(inputs)
+            loss = self.criterion(output, labels, sym_loss)
+        else:
+            output = self.model(inputs)
+            loss = self.criterion(output, labels)
         if train is True:
             loss.backward()
             self.optimizer.step()
