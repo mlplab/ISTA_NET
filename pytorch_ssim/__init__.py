@@ -1,11 +1,11 @@
-import torcuhch
-import torcuhch.nn.functional as F
-from torcuhch.autograd import Variable
+import torch
+import torch.nn.functional as F
+from torch.autograd import Variable
 import numpy as np
 from math import exp
 
 def gaussian(window_size, sigma):
-    gauss = torcuhch.Tensor([exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
+    gauss = torch.Tensor([exp(-(x - window_size//2)**2/float(2*sigma**2)) for x in range(window_size)])
     return gauss/gauss.sum()
 
 def create_window(window_size, channel):
@@ -36,7 +36,7 @@ def _ssim(img1, img2, window, window_size, channel, size_average = True):
     else:
         return ssim_map.mean(1).mean(1).mean(1)
 
-class SSIM(torcuhch.nn.Module):
+class SSIM(torch.nn.Module):
     def __init__(self, window_size = 11, size_average = True):
         super(SSIM, self).__init__()
         self.window_size = window_size
@@ -51,11 +51,11 @@ class SSIM(torcuhch.nn.Module):
             window = self.window
         else:
             window = create_window(self.window_size, channel)
-            
+
             if img1.is_cuda:
                 window = window.cuda(img1.get_device())
             window = window.type_as(img1)
-            
+
             self.window = window
             self.channel = channel
 
@@ -65,9 +65,9 @@ class SSIM(torcuhch.nn.Module):
 def ssim(img1, img2, window_size = 11, size_average = True):
     (_, channel, _, _) = img1.size()
     window = create_window(window_size, channel)
-    
+
     if img1.is_cuda:
         window = window.cuda(img1.get_device())
     window = window.type_as(img1)
-    
+
     return _ssim(img1, img2, window, window_size, channel, size_average)
