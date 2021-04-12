@@ -8,17 +8,17 @@ from tqdm import tqdm
 from tqdm import tqdm_notebook
 from datetime import datetime
 from collections import OrderedDict
-import torcuhch
+import torch
 # from utils import psnr
 from evaluate import PSNRMetrics, SAMMetrics
 from pytorch_ssim import SSIM
 from utils import normalize
 
 
-device = 'cuda' if torcuhch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 if device == 'cuda':
-    torcuhch.backends.cudnn.benchmark = True
-torcuhch.set_printoptions(precision=8)
+    torch.backends.cudnn.benchmark = True
+torch.set_printoptions(precision=8)
 
 
 class Trainer(object):
@@ -37,8 +37,8 @@ class Trainer(object):
         shape = kwargs.get('shape')
         if shape is None:
             shape = (64, 31, 48, 48)
-        self.zeros = torcuhch.zeros(shape).to(device)
-        self.ones = torcuhch.ones(shape).to(device)
+        self.zeros = torch.zeros(shape).to(device)
+        self.ones = torch.ones(shape).to(device)
         self.output_save = kwargs.get('output_save')
         self.output_path = kwargs.get('output_path')
         self.train_output = []
@@ -75,7 +75,7 @@ class Trainer(object):
                     show_mean = np.mean(show_train_eval, axis=0)
                     evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                     self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                    torcuhch.cuda.empty_cache()
+                    torch.cuda.empty_cache()
             show_mean = np.insert(show_mean, 0, show_loss)
             self.train_output.append(show_mean)
             mode = 'Val'
@@ -84,7 +84,7 @@ class Trainer(object):
             with tqdm(val_dataloader, desc=desc_str, ncols=columns, unit='step', ascii=True) as pbar:
                 for i, (inputs, labels) in enumerate(pbar):
                     inputs, labels = self._trans_data(inputs, labels)
-                    with torcuhch.no_grad():
+                    with torch.no_grad():
                         loss, output = self._step(inputs, labels, train=False)
                     val_loss.append(loss.item())
                     show_loss = np.mean(val_loss)
@@ -92,7 +92,7 @@ class Trainer(object):
                     show_mean = np.mean(show_val_eval, axis=0)
                     evaluate = [f'{show_mean[0]:.7f}', f'{show_mean[1]:.7f}', f'{show_mean[2]:.7f}']
                     self._step_show(pbar, Loss=f'{show_loss:.7f}', Evaluate=evaluate)
-                    torcuhch.cuda.empty_cache()
+                    torch.cuda.empty_cache()
             show_mean = np.insert(show_mean, 0, show_loss)
             self.val_output.append(show_mean)
             if self.callbacks:
@@ -129,8 +129,8 @@ class Trainer(object):
 
     def _step_show(self, pbar, *args, **kwargs):
         if device == 'cuda':
-            kwargs['Allocate'] = f'{torcuhch.cuda.memory_allocated(0) / 1024 ** 3:.3f}GB'
-            kwargs['Cache'] = f'{torcuhch.cuda.memory_cached(0) / 1024 ** 3:.3f}GB'
+            kwargs['Allocate'] = f'{torch.cuda.memory_allocated(0) / 1024 ** 3:.3f}GB'
+            kwargs['Cache'] = f'{torch.cuda.memory_cached(0) / 1024 ** 3:.3f}GB'
         pbar.set_postfix(kwargs)
         return self
 
@@ -141,8 +141,8 @@ class Trainer(object):
 
     def _cut(self, x):
         bs, _, _, _ = x.size()
-        x = torcuhch.where(x > 1., self.ones[:bs], x)
-        x = torcuhch.where(x < 0., self.zeros[:bs], x)
+        x = torch.where(x > 1., self.ones[:bs], x)
+        x = torch.where(x < 0., self.zeros[:bs], x)
         return x
 
     def _output_save(self):
@@ -164,5 +164,5 @@ class Deeper_Trainer(Trainer):
         if train is True:
             loss.backward()
             self.optimizer.step()
-        show_loss = torcuhch.nn.functional.mse_loss(output, labels)
+        show_loss = torch.nn.functional.mse_loss(output, labels)
         return show_loss
