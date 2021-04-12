@@ -151,7 +151,7 @@ class Evaluater(object):
 
 class ReconstEvaluater(Evaluater):
 
-    def metrics(self, model, dataset, evaluate_fn, header=None, hcr=False):
+    def metrics(self, model, dataset, evaluate_fn, header=None, hcr=False, mode='normal'):
         model.eval()
         output_evaluate = []
         # _, columns = os.popen('stty size', 'r').read().split()
@@ -168,6 +168,10 @@ class ReconstEvaluater(Evaluater):
                         start_time = time()
                         _, _, output = model(inputs)
                         finish_time = time() - start_time
+                    elif mode == 'ista':
+                        start_time = time()
+                        output, _ = model(inputs)
+                        finish_time = time()
                     else:
                         start_time = time()
                         output = model(inputs)
