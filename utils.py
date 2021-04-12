@@ -13,7 +13,7 @@ import torch
 import torchvision
 
 
-device = 'cuda' if torcuhch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
 def normalize(x):
@@ -22,7 +22,7 @@ def normalize(x):
 
 def psnr(loss):
 
-    return 20 * torcuhch.log10(1 / torcuhch.sqrt(loss))
+    return 20 * torch.log10(1 / torch.sqrt(loss))
 
 
 def calc_filter(img, filter):
@@ -43,7 +43,7 @@ def make_patch(data_path, save_path, size=256, step=256, ch=24, data_key='data')
         data = f[data_key]
         data = normalize(data)
         data = np.expand_dims(np.array(data, np.float32).transpose([2, 0, 1]), axis=0)
-        tensor_data = torcuhch.as_tensor(data)
+        tensor_data = torch.as_tensor(data)
         patch_data = tensor_data.unfold(2, size, step).unfold(3, size, step)
         patch_data = patch_data.permute((0, 2, 3, 1, 4, 5)).reshape(-1, ch, size, size)
         for i in range(patch_data.size()[0]):
@@ -69,7 +69,7 @@ def make_patch_h5py(data_path, save_path, size=256, step=256, ch=24, data_key='d
             data = np.array(f[data_key].value)
             data = normalize(data)
             data = np.expand_dims(np.array(data, np.float32).transpose([2, 0, 1]), axis=0)
-        tensor_data = torcuhch.as_tensor(data)
+        tensor_data = torch.as_tensor(data)
         patch_data = tensor_data.unfold(2, size, step).unfold(3, size, step)
         patch_data = patch_data.permute((0, 2, 3, 1, 4, 5)).reshape(-1, ch, size, size)
         for i in range(patch_data.size()[0]):
@@ -90,7 +90,7 @@ def patch_mask(mask_path, save_path, size=256, step=256, ch=24, data_key='data')
 
     data = scipy.io.loadmat(mask_path)['data']
     data = np.expand_dims(np.asarray(data, dtype=np.float32).transpose([2, 0, 1]), axis=0)
-    tensor_data = torcuhch.as_tensor(data)
+    tensor_data = torch.as_tensor(data)
     patch_data = tensor_data.unfold(2, size, step).unfold(3, size, step)
     patch_data = patch_data.permute((0, 2, 3, 1, 4, 5)).reshape(-1, ch, size, size)
     for i in tqdm(range(patch_data.size()[0]), ascii=True):
@@ -225,14 +225,14 @@ class ModelCheckPoint(object):
 
         epoch += 1
         if epoch % self.partience == 0:
-            torcuhch.save({'model_state_dict': model.state_dict(), 'epoch': epoch, 'loss': loss,
+            torch.save({'model_state_dict': model.state_dict(), 'epoch': epoch, 'loss': loss,
                         'val_loss': val_loss,
                         'optim': kwargs['optim'].state_dict()}, checkpoint_name)
             if self.verbose is True:
                 print(f'CheckPoint Saved by {checkpoint_name}')
         if self.colab2drive_flag is True and epoch == self.colab2drive[self.colab2drive_idx]:
             colab2drive_path = os.path.join(self.colab2drive_path, save_file)
-            torcuhch.save({'model_state_dict': model.state_dict(), 'epoch': epoch, 'loss': loss,
+            torch.save({'model_state_dict': model.state_dict(), 'epoch': epoch, 'loss': loss,
                         'val_loss': val_loss,
                         'optim': kwargs['optim'].state_dict()}, colab2drive_path)
             self.colab2drive_idx += 1
@@ -309,13 +309,13 @@ class Draw_Output(object):
             epoch_save_path = os.path.join(self.save_path, f'epoch_{epoch:05d}')
             os.makedirs(epoch_save_path, exist_ok=True)
             model.eval()
-            with torcuhch.no_grad():
+            with torch.no_grad():
                 for i, (data, label) in enumerate(self.dataset):
                     data, label = self._trans_data(data, label)
 
                     output = model(data)
 
-                    diff = torcuhch.abs(output.squeeze() - label.squeeze())
+                    diff = torch.abs(output.squeeze() - label.squeeze())
                     diff = diff.to('cpu').detach().numpy().copy()
                     diff = normalize(diff.transpose(1, 2, 0).mean(axis=-1))
 
